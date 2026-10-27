@@ -1,5 +1,5 @@
 name: Three-site public URL and search regression
-# Post-release verification: Scolytinae public artifact 43b0883301fb1a1a902f9ff41d4789509f1425cc
+# Post-release verification: Scolytinae public artifact 40013851f3f5118099ddfe2aaae66c67a6c71c10
 on:
   workflow_dispatch:
   push:
