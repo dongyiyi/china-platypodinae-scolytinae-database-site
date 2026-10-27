@@ -1,0 +1,108 @@
+name: Three-site public URL and search regression
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/three-site-regression.yml'
+permissions:
+  contents: read
+jobs:
+  live-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit actual published URLs, data and navigation
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python - <<'PY'
+          import concurrent.futures, json, re, sys, time, urllib.request, urllib.error, xml.etree.ElementTree as ET
+          OLD = 'https://dongyiyi.github.io/china-scolytinae-database-site/'
+          PORTAL = 'https://dongyiyi.github.io/china-platypodinae-scolytinae-database-site/'
+          PLT = 'https://dongyiyi.github.io/china-platypodinae-database-site/'
+          errors = []
+          def get(url, attempts=3):
+              for i in range(attempts):
+                  try:
+                      req = urllib.request.Request(url, headers={'User-Agent':'Three-Site-URL-Regression/1.0'})
+                      with urllib.request.urlopen(req, timeout=28) as r:
+                          code, final = r.status, r.url
+                          body = r.read()
+                      if code!=200 or final.rstrip('/')!=url.rstrip('/'):
+                          raise ValueError('unexpected HTTP status or redirect: %s -> %s [%s]'%(url,final,code))
+                      return body
+                  except Exception as e:
+                      if i==attempts-1: raise
+                      time.sleep(i+1)
+          def text(url):return get(url).decode('utf-8')
+          def parsed(url):return json.loads(text(url))
+          try:
+              portalhtml=text(PORTAL);plthtml=text(PLT);oldhtml=text(OLD)
+              for label,url,html in [('portal',PORTAL,portalhtml),('platypodinae',PLT,plthtml),('scolytinae',OLD,oldhtml)]:
+                  if '<html' not in html.lower():errors.append(label+' homepage does not render HTML')
+                  if url not in html:errors.append(label+' canonical/root link absent')
+              if OLD not in portalhtml or PLT not in portalhtml: errors.append('portal cards missing cross-site URLs')
+              if OLD not in plthtml or PORTAL not in plthtml:errors.append('PLT missing cross-site navigation')
+              assert 'Explore Scolytinae' in plthtml, 'PLT sixth card not linked'
+              assert 'Provisional' in plthtml, 'PLT provisional marker missing'
+              assert '74' in plthtml, 'PLT provisional species count missing'
+              for site in [OLD,PORTAL,PLT]:
+                  for path in ['robots.txt','sitemap.xml']:
+                      content=text(site+path)
+                      if not content.strip():errors.append('blank '+site+path)
+              source_index=parsed(OLD+'data/taxa.json')
+              rankdata=parsed(OLD+'data/higher-taxon-chinese-names.json')
+              config=parsed(PORTAL+'data/sites.json')
+              platmeta=parsed(PLT+'data/site-meta.json')
+              assert len(source_index)==577,'production index != 577'
+              assert len({x['vsn'] for x in source_index})==577,'duplicate VSN'
+              assert all(x['subfamily']=='Scolytinae' for x in source_index),'wrong subfamily in public index'
+              assert len({x['genus'] for x in source_index})==86
+              assert len({x['tribe'] for x in source_index})==21
+              assert platmeta['provisional_species_count']==74 and platmeta['published_profile_count']==0
+              assert config['subfamilies']['Scolytinae']['base_url']==OLD
+              assert config['subfamilies']['Platypodinae']['base_url']==PLT
+              sitemap=text(OLD+'sitemap.xml')
+              urls=[x.text for x in ET.fromstring(sitemap).iter() if x.tag.endswith('loc')]
+              idurls={OLD+'taxa/'+t['vsn']+'/' for t in source_index}
+              if set(urls)!={OLD}|idurls:errors.append('existing sitemap URLs do not match original 577 VSN records + root')
+              for site,files in [(PORTAL,['assets/portal.js','assets/taxon-search.mjs','assets/site.css']), (PLT,['assets/site.css','assets/platypodinae.js'])]:
+                  for file in files:
+                      if not get(site+file):errors.append('empty static asset '+site+file)
+              # Shared public search logic is already deployed; ensure the portal uses its published input.
+              portaljs=text(PORTAL+'assets/portal.js')
+              searchjs=text(PORTAL+'assets/taxon-search.mjs')
+              if not all(k in portaljs for k in ('buildTaxonSearchIndex','searchTaxonIndex','encodeURIComponent','Scolytinae')):errors.append('portal search wiring missing')
+              if not all(k in searchjs for k in ('normalizeTaxonSearch','former_chinese','chinese_genus','chinese_tribe','authorship')):errors.append('search normalization/field coverage regressed')
+              for sid in ['VSN_0083','VSN_1168','VSN_2801','VSN_5977','VSN_5978']:
+                  if sid not in {t['vsn'] for t in source_index}:errors.append('regression key missing '+sid)
+              def check_taxon(t):
+                  id=t['vsn']; url=OLD+'taxa/'+id+'/'
+                  try:
+                      page=text(url)
+                      if id not in page or '<link rel="canonical" href="'+url+'"' not in page:
+                          return id+': missing VSN or canonical'
+                      if t['scientific_name'] not in page:
+                          return id+': scientific name absent'
+                      record=parsed(OLD+'data/species/'+id+'.json')
+                      if record.get('vsn')!=id:return id+': species JSON mismatch'
+                  except Exception as e:return id+': '+str(e)[:170]
+                  return None
+              with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
+                  for result in pool.map(check_taxon,source_index):
+                      if result:errors.append(result)
+              # Legacy hashes are client routes; ensure router contains every frozen path.
+              app=text(OLD+'assets/js/app.js')
+              for route in ['browse','genera','tribes','regions','invasive','data','methods','contribute','cite','about']:
+                  if "r.path==='/"+route+"'" not in app: errors.append('legacy hash route missing '+route)
+              print('Published Scolytinae index',len(source_index))
+              print('Live URLs checked',len(source_index),'species HTML + JSON, three site roots, assets and site maps')
+              print('ERRORS',len(errors))
+              for err in errors[:60]:print('FAIL',err)
+              if errors:sys.exit(1)
+              print('PASS: live 577 VSN taxon and JSON URLs, canonical, links, index, navigation/search static contract.')
+          except Exception as e:
+              print('FATAL live check:',repr(e))
+              sys.exit(1)
+          PY
