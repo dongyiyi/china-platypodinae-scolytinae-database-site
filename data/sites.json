@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "subfamilies": {
+    "Scolytinae": {
+      "base_url": "https://dongyiyi.github.io/china-scolytinae-database-site/",
+      "index_path": "data/taxa.json",
+      "ranks_path": "data/higher-taxon-chinese-names.json",
+      "id_namespace": "VSN",
+      "publication_state": "published"
+    },
+    "Platypodinae": {
+      "base_url": "https://dongyiyi.github.io/china-platypodinae-database-site/",
+      "provisional_count": 74,
+      "id_namespace": "PLT",
+      "publication_state": "provisional",
+      "index_path": null
+    }
+  }
+}
