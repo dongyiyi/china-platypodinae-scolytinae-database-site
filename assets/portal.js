@@ -38,7 +38,7 @@ function search(){
  if(!index.length){out.innerHTML='<p class="notice">Search indexes are unavailable.</p>';return}
  const hits=searchTaxonIndex(index,q).slice(0,100);
  out.innerHTML=hits.length?hits.map(hit=>{
-   const t=hit.taxon,sub=hit.subfamily,id=sub==='Platypodinae'?t.plt:t.vsn,href=sources[sub].base+'taxa/'+encodeURIComponent(id)+'/';
+   const t=hit.taxon,sub=t.subfamily,id=sub==='Platypodinae'?t.plt:t.vsn,href=sources[sub].base+'taxa/'+encodeURIComponent(id)+'/';
    return '<a class="result" href="'+href+'"><strong><span class="scientific">'+esc(t.scientific_name)+'</span> '+esc(t.authorship)+'</strong><br><small>'+esc(sub)+' · '+esc(t.recommended_chinese_name||t.chinese_name||'—')+' · '+esc(id)+' · '+esc(t.tribe)+'</small>'+(hit.matchedKind.startsWith('chinese_')||hit.matchedKind==='former_chinese'?'<br><small>Matched '+esc(hit.matchedKind.replaceAll('_',' '))+': '+esc(hit.matchedValue)+'</small>':'')+'</a>';
  }).join(''):'<p class="notice">No matching published species profile.</p>';
 }
