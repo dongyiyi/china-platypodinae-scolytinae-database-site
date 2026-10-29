@@ -12,8 +12,10 @@
       "base_url": "https://dongyiyi.github.io/china-platypodinae-database-site/",
       "provisional_count": 74,
       "id_namespace": "PLT",
-      "publication_state": "provisional",
-      "index_path": null
+      "publication_state": "published provisional profiles",
+      "index_path": "data/taxa.json",
+      "published_profile_count": 70,
+      "metadata_path": "data/site-meta.json"
     }
   }
 }
