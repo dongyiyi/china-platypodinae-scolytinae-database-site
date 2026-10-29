@@ -19,8 +19,8 @@ async function init(){
      document.querySelector('#scol-count').textContent=taxa.length;
      return buildTaxonSearchIndex(taxa,ranks).map(e=>({...e,subfamily}));
    }
-   const a=await fetch(base+c.index_path);
-   if(!a.ok)throw Error('Platypodinae index unavailable');
+   const a=await fetch('data/platypodinae-taxa.json');
+   if(!a.ok)throw Error('Local Platypodinae index unavailable');
    const taxa=await a.json();
    if(new Set(taxa.map(t=>t.plt)).size!==taxa.length)throw Error('Platypodinae duplicate IDs');
    document.querySelector('#plat-count').textContent=taxa.length;
