@@ -40,7 +40,7 @@
     'Visit the independent Platypodinae checklist. Species profiles are under review.':'访问独立的长小蠹亚科名录。物种档案仍在审核中。',
     'Published checklist':'已发布的物种名录',
     'Published provisional profiles':'已公开的暂定物种档案',
-    'Browse reviewed and source-traceable bark and ambrosia beetle profiles.':'浏览经过审核、来源可追溯的小蠹和菌蠹物种档案。',
+    'Browse reviewed and source-traceable bark and ambrosia beetle profiles.':'浏览经过审核、文献来源可追溯的树皮小蠹和食菌小蠹物种档案。',
     'Browse 70 source-linked species profiles. Taxonomic and occurrence review remains ongoing.':'浏览附有文献来源的物种档案。分类及分布证据审核仍在进行中。',
     'Provisional':'暂定',
     'Evidence-qualified profiles':'基于证据的物种档案',
